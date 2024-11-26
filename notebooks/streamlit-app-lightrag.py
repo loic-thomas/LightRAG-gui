@@ -308,20 +308,43 @@ def show_insert_dialog():
     
     with tab2:
         uploaded_file = st.file_uploader(
-            "Choose a markdown file",
-            type=['md', 'txt'],
-            help="Upload a markdown (.md) or text (.txt) file"
+            "Choisissez un fichier",
+            type=['md', 'txt', 'pdf'],
+            help="Téléchargez un fichier markdown (.md), texte (.txt) ou PDF (.pdf)"
         )
         
         if uploaded_file is not None:
-            if st.button("Insert File", key="insert_file"):
+            if st.button("Insérer le fichier", key="insert_file"):
                 try:
-                    content = uploaded_file.read()
-                    if isinstance(content, bytes):
-                        content = content.decode('utf-8')
-                    handle_insert(content)
+                    # Identifier l'extension du fichier
+                    file_extension = os.path.splitext(uploaded_file.name)[1].lower()
+
+                    # Gestion des fichiers texte ou markdown
+                    if file_extension in ['.txt', '.md']:
+                        content = uploaded_file.read()
+                        if isinstance(content, bytes):
+                            content = content.decode('utf-8')
+                        handle_insert(content)
+                    
+                    # Gestion des fichiers PDF
+                    elif file_extension == '.pdf':
+                        pdf_reader = PyPDF2.PdfReader(uploaded_file)
+                        content = []
+                        for page in pdf_reader.pages:
+                            text = page.extract_text()
+                            if text.strip():  # Vérifie que la page contient du texte
+                                content.append(text)
+                        if not content:
+                            st.error("Aucun texte n'a pu être extrait du PDF.")
+                        else:
+                            combined_content = "\n\n".join(content)
+                            handle_insert(combined_content)
+                    
+                    else:
+                        st.error(f"Format de fichier non pris en charge : {file_extension}")
+                
                 except Exception as e:
-                    st.error(f"Error inserting file: {str(e)}")
+                    st.error(f"Erreur lors de l'insertion du fichier : {str(e)}")
     
     with tab3:
         url = st.text_input(
